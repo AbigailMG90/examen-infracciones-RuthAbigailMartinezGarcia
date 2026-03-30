@@ -30,7 +30,6 @@ public class InfractorServiceTest {
     @Test
     @DisplayName("Pregunta 1: Infractor con 2 multas VENCIDAS no se bloquea")
     void dadoInfractorCon2Vencidas_cuandoVerificarBloqueo_entoncesNoSeBloquea() {
-        // Given (Dado un infractor con id 1 y 2 multas vencidas)
         Long id = 1L;
         Infractor infractor = new Infractor();
         infractor.setId(id);
@@ -39,10 +38,8 @@ public class InfractorServiceTest {
         when(infractorRepository.findById(id)).thenReturn(Optional.of(infractor));
         when(multaRepository.countByInfractorIdAndEstado(id, EstadoMulta.VENCIDA)).thenReturn(2L);
 
-        // When (Cuando se ejecuta verificarBloqueo)
         infractorService.verificarBloqueo(id);
 
-        // Then (Entonces no se bloquea)
         assertFalse(infractor.isBloqueado());
         verify(infractorRepository).save(infractor);
     }
