@@ -4,9 +4,11 @@ import edu.pe.cibertec.infracciones.dto.InfractorRequestDTO;
 import edu.pe.cibertec.infracciones.dto.InfractorResponseDTO;
 import edu.pe.cibertec.infracciones.exception.InfractorNotFoundException;
 import edu.pe.cibertec.infracciones.exception.VehiculoNotFoundException;
+import edu.pe.cibertec.infracciones.model.EstadoMulta;
 import edu.pe.cibertec.infracciones.model.Infractor;
 import edu.pe.cibertec.infracciones.model.Vehiculo;
 import edu.pe.cibertec.infracciones.repository.InfractorRepository;
+import edu.pe.cibertec.infracciones.repository.MultaRepository;
 import edu.pe.cibertec.infracciones.repository.VehiculoRepository;
 import edu.pe.cibertec.infracciones.service.IInfractorService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +21,7 @@ public class InfractorServiceImpl implements IInfractorService {
 
     private final InfractorRepository infractorRepository;
     private final VehiculoRepository vehiculoRepository;
-
+    private final MultaRepository multaRepository;
     @Override
     public InfractorResponseDTO registrarInfractor(InfractorRequestDTO dto) {
         Infractor infractor = new Infractor();
@@ -67,4 +69,25 @@ public class InfractorServiceImpl implements IInfractorService {
         dto.setBloqueado(infractor.isBloqueado());
         return dto;
     }
+
+    @Override
+    public void verificarBloqueo(Long id) {
+        // 1. Buscamos al infractor en la base de datos
+        Infractor infractor = infractorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Infractor no encontrado"));
+
+        // 2. Contamos cuántas multas VENCIDAS tiene
+        Long cantidadVencidas = multaRepository.countByInfractorIdAndEstado(id, EstadoMulta.VENCIDA);
+
+        // 3. Regla de negocio: 3 o más multas vencidas = Bloqueo automático
+        if (cantidadVencidas >= 3) {
+            infractor.setBloqueado(true);
+        } else {
+            infractor.setBloqueado(false);
+        }
+
+        // 4. Guardamos los cambios
+        infractorRepository.save(infractor);
+    }
+
 }
