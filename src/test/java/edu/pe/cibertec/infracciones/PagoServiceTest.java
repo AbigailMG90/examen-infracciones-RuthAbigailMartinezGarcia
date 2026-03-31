@@ -21,6 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.any;
+
 @ExtendWith(MockitoExtension.class)
 public class PagoServiceTest {
     @Mock
@@ -50,4 +54,30 @@ public class PagoServiceTest {
         assertEquals(EstadoMulta.PAGADA, m.getEstado());
     }
 
+    @Test
+    @DisplayName("Pregunta4")
+    void dadoMultaVencida_cuandoProcesarPago_entoncesCapturaPagoConRecargo() {
+        // Given: Multa de 500 que venció hace 2 días
+        Multa multa = new Multa();
+        multa.setId(2L);
+        multa.setMonto(500.00);
+        multa.setFechaEmision(LocalDate.now().minusDays(12));
+        multa.setFechaVencimiento(LocalDate.now().minusDays(2));
+        multa.setEstado(EstadoMulta.PENDIENTE);
+
+        when(multaRepository.findById(2L)).thenReturn(Optional.of(multa));
+
+        when(pagoRepository.save(any(Pago.class))).thenAnswer(i -> i.getArgument(0));
+
+        org.mockito.ArgumentCaptor<Pago> pagoCaptor = org.mockito.ArgumentCaptor.forClass(Pago.class);
+
+        pagoService.procesarPago(2L);
+
+        verify(pagoRepository, times(1)).save(pagoCaptor.capture());
+
+        Pago pagoCapturado = pagoCaptor.getValue();
+        assertEquals(75.00, pagoCapturado.getRecargo());
+        assertEquals(0.00, pagoCapturado.getDescuentoAplicado());
+        assertEquals(575.00, pagoCapturado.getMontoPagado());
+    }
 }
